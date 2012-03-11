@@ -1,0 +1,1 @@
+Program('cube.cpp', CPPPATH='../../..', CPPFLAGS=['-std=c++0x','-g'])
