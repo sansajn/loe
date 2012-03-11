@@ -1,0 +1,1 @@
+Program(['lvm.cpp', '../luatools.cpp'], LIBS='lua5.1', CPPFLAGS='-std=c++0x') 
