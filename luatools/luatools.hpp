@@ -1,12 +1,11 @@
-/*! v20120212 
-\author Adam Hlavatovič */
+/*! \file luatools.hpp
+\author Adam Hlavatovič 
+\version 20120212 */
 #pragma once
 #include <string>
 #include <vector>
 #include <lua5.1/lua.hpp>
 
-/*! \example
-*/
 
 namespace loe {
 	namespace lua {

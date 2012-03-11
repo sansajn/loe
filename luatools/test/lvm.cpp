@@ -10,8 +10,7 @@ using std::vector;
 using std::copy;
 #include <iterator>
 using std::ostream_iterator;
-#include <lua5.1/lua.hpp>
-#include "../luatools.hpp"
+#include <loe/luatools.hpp>
 namespace lua = loe::lua;
 
 
