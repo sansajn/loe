@@ -1,0 +1,72 @@
+{Dbw}
+Sqlite3 database wrapper.
+
+[Example:
+
+	session sql("test.db");
+	vector<int> years;
+	vector<string> names;
+	sql << "select year, name from test", years, names;
+	...
+
+--- end example].
+
+
+{Tie}
+
+[Example:
+
+	std::pair<int, int> foo() {
+		return make_pair(1, 2);
+	}
+
+	int i, j;
+	tie(i, j) = foo();  // i = 1, j = 2
+	...
+
+--- end example].
+
+
+{Range}
+
+[Example:
+
+	vector<int> v{1, 2, 3, 4, 5};
+	for (auto r = make_range(v); r; ++r)
+		*r = 2*(*r);
+
+--- end example].
+
+
+{Random generator}
+
+[Example:
+
+	vector<int> v(100);
+	generate(v.begin(), v.end(), random_generator());
+
+--- end example].
+
+
+{Lua tools}
+
+[Example:
+
+	lua::vm lvm(lmessage);
+	lua_State * L = lua::newstate();
+	lvm.init(L);
+	lvm.run_script(L, "test.lua");
+
+	lua::ostack_stream(L) << "Jack Black";
+	lvm.call_function(L, "person_data", 1);
+
+	int salaty, age;
+	lua::istack_stream(L) >> salary >> age;
+
+	cout << "Jack Black:\n" 
+		<< "  age   : " << age << "\n"
+		<< "  salary: " << salary << "\n";
+
+	lua_pop(L, 2);
+
+--- end example].

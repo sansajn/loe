@@ -1,0 +1,2 @@
+Program(['testdb.cpp', '../session.cpp'], CPPPATH='../../..', 
+	LIBS='sqlite3', CPPFLAGS=['-std=c++0x', '-g'])
