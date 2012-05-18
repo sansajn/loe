@@ -98,6 +98,23 @@ void test_error(lua::vm & lvm, lua_State * L)
 	lvm.call_function(L, "simple_error", 0);
 }
 
+void test_io(lua::vm & lvm, lua_State * L)
+{
+	lvm.call_function(L, "write_test", 0);
+}
+
+void test_luasql(lua::vm & lvm, lua_State * L)
+{
+	lvm.call_function(L, "sqlite3_test", 0);
+}
+
+void test_libs(lua::vm & lvm, lua_State * L)
+{
+	test_io(lvm, L);
+	test_luasql(lvm, L);
+}
+
+
 void test()
 {
 	lua::vm lvm(lmessage);
@@ -111,17 +128,15 @@ void test()
 	test_arrayis(lvm, L);
 	test_arrayos(lvm, L);
 	test_error(lvm, L);
+	test_libs(lvm, L);
 
 	cout << "stack size: " << lua_gettop(L) << "\n";
+
+	lua_close(L);
 }
 
 int main(int argc, char * argv[])
 {
-	lua::vm lvm(lmessage);
-	lua_State * L = lua::newstate();
-	lvm.init(L);
-	lvm.run_script(L, "test.lua");
-
 	test();
 
 	return 0;

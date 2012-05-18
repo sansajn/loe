@@ -28,3 +28,46 @@ function filter(d)
 	end
 	return fd
 end
+
+function write_test()
+	f = assert(io.open('testfile.dat', 'w'))
+	f:write('Hello!')
+	f:close()
+end
+
+function sqlite3_test()
+	require 'luasql.sqlite3'
+
+	env = assert(luasql.sqlite3())
+	con = assert(env:connect('test.db'))
+	res = assert(con:execute[[
+		create table people(
+			name varchar(50),
+			email varchar(50)
+		)
+	]])
+
+	list = {
+		{name='Jose das Couves', email='jose@couves.com'},
+		{name='Manoel Joaqim', email='manuel@joaqim.com'},
+		{name='Maria das Dores', email='maria@dores.com'}
+	}
+
+	for i,v in pairs(list) do
+		res = assert(con:execute(string.format([[
+			insert into people
+			values('%s', '%s')]], v.name, v.email)
+		))
+	end
+
+	cur = assert(con:execute("select name, email from people"))
+	row = cur:fetch({}, 'a')
+	while row do
+		print(string.format('Name: %s, E-mail: %s', row.name, row.email))
+		row = cur:fetch(row, 'a')
+	end
+
+	cur:close()
+	con:close()
+	env:close()
+end
