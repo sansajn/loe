@@ -14,6 +14,7 @@ typedef void (* errout)(char const * msg);
 
 inline lua_State * newstate() {return luaL_newstate();}
 
+//! Lua Virtual Machine.
 class vm
 {
 public:
@@ -33,29 +34,70 @@ private:
 	errout _luaerr;
 };
 
-template <typename R>
-R stack_pop(lua_State * L);
 
-template <> inline int stack_pop<int>(lua_State * L)
+//! Lua stack low-level manipulators.
+//@{
+template <typename R>
+inline R stack_pop(lua_State * L);
+
+template <typename T>
+inline void stack_push(lua_State * L, T const & x);
+
+template <> 
+inline int stack_pop<int>(lua_State * L)
 {
 	int tmp = lua_tointeger(L, -1);
 	lua_pop(L, 1);
 	return tmp;
 }
 
-template <> inline double stack_pop<double>(lua_State * L)
+template <> 
+inline double stack_pop<double>(lua_State * L)
 {
 	double tmp = lua_tonumber(L, -1);
 	lua_pop(L, 1);
 	return tmp;
 }
 
-template <> inline std::string stack_pop<std::string>(lua_State * L)
+template <> 
+inline std::string stack_pop<std::string>(lua_State * L)
 {
 	std::string tmp = lua_tostring(L, -1);
 	lua_pop(L, 1);
 	return tmp;
 }
+
+template <> 
+inline void stack_push<int>(lua_State * L, int const & x)
+{
+	lua_pushinteger(L, x);
+}
+
+template <> 
+inline void stack_push<double>(lua_State * L, double const & x)
+{
+	lua_pushnumber(L, x);
+}
+
+template <> 
+inline void stack_push<std::string>(lua_State * L, std::string const & x)
+{
+	lua_pushstring(L, x.c_str());
+}
+
+inline void stack_push(lua_State * L, char const * x)
+{
+	lua_pushstring(L, x);
+}
+
+template <typename Value, typename Key>
+Value get_table(lua_State * L, Key k, int sidx) 
+{
+	stack_push(L, k);
+	lua_gettable(L, sidx-1);
+	return stack_pop<Value>(L);
+}
+//@}
 
 template <typename T>
 class array_range
@@ -77,14 +119,20 @@ private:
 	int const _sidx;  //!< stack index
 };
 
-
-/*! \note Argumenty sú v prúde v opačnom poradí. */
+/*! \note Argumenty sú v prúde v opačnom poradí ako ich vracia volaná (lua)
+funkcia. */
 class istack_stream
 {
 public:
 	typedef istack_stream self;
 
-	istack_stream(lua_State * L) : _L(L), _sidx(-1) {}
+	istack_stream(lua_State * L, int sidx = -1) : _L(L), _sidx(sidx) {}
+
+	//! unary-manipulators
+	self & operator>>(void (*fn)(self & is)) {
+		fn(*this);
+		return *this;
+	}
 
 	self & operator>>(int & val) {
 		val = lua_tointeger(_L, _sidx--);
@@ -108,6 +156,13 @@ public:
 		return *this;
 	}
 
+	void next() {--_sidx;}
+
+	template <typename Value, typename Key>
+	Value get_table(Key k) {
+		return lua::get_table<Value>(_L, k, _sidx);
+	}
+	
 private:
 	template <typename T>
 	array_range<T> get_array() {
@@ -119,24 +174,33 @@ private:
 	int _sidx;	//!< stack index
 };
 
-template <typename T>
-inline void stack_push(lua_State * L, T const & x);
-
-template <> inline void stack_push<int>(lua_State * L, int const & x)
+/*! \note Tabuľkový manipulátor implicitne neposunie ukazateľ na ďalší prvok v
+zásobníku. Ak chceme zo zásobníku čítať dalšie prvky, je potrebné zavolať
+manipulátor next(). */
+template <typename Key, typename Value>
+inline std::pair<Key, Value &> tab(Key k, Value & v)
 {
-	lua_pushinteger(L, x);
+	return std::pair<Key, Value &>(k, v);
 }
 
-template <> inline void stack_push<double>(lua_State * L, double const & x)
+/* \note Parameter f sa nemusí predavať ako referencia, lebo kompilator použije
+optimalizáciu a celý kódu sa inlajnuje. */
+template <typename Value, typename Key>
+inline istack_stream & operator>>(istack_stream & is, std::pair<Key, Value &> f)
 {
-	lua_pushnumber(L, x);
+	f.second = is.get_table<Value>(f.first);
+	return is;
 }
 
-template <> 
-inline void stack_push<std::string>(lua_State * L, std::string const & x)
+template <typename Value, typename Key>
+inline istack_stream & operator>>(istack_stream && is, std::pair<Key, Value &> f)
 {
-	lua_pushstring(L, x.c_str());
+	f.second = is.get_table<Value>(f.first);
+	return is;
 }
+
+inline void next(istack_stream & is) {is.next();}
+
 
 class ostack_stream
 {
