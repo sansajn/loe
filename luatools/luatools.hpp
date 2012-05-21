@@ -2,8 +2,9 @@
 \author Adam Hlavatovič 
 \version 20120212 */
 #pragma once
-#include <string>
+#include <map>
 #include <vector>
+#include <string>
 #include <lua5.1/lua.hpp>
 
 
@@ -42,6 +43,9 @@ inline R stack_pop(lua_State * L);
 
 template <typename T>
 inline void stack_push(lua_State * L, T const & x);
+
+template <typename R>
+inline R stack_at(lua_State * L, int idx);
 
 template <> 
 inline int stack_pop<int>(lua_State * L)
@@ -90,6 +94,24 @@ inline void stack_push(lua_State * L, char const * x)
 	lua_pushstring(L, x);
 }
 
+template <>
+inline int stack_at<int>(lua_State * L, int idx)
+{
+	return lua_tointeger(L, idx);
+}
+
+template <>
+inline double stack_at<double>(lua_State * L, int idx)
+{
+	return lua_tonumber(L, idx);
+}
+
+template <>
+inline std::string stack_at<std::string>(lua_State * L, int idx)
+{
+	return lua_tostring(L, idx);
+}
+
 template <typename Value, typename Key>
 Value get_table(lua_State * L, Key k, int sidx) 
 {
@@ -117,6 +139,36 @@ private:
 	lua_State * _L;
 	int _tidx;  //!< table index
 	int const _sidx;  //!< stack index
+};
+
+template <typename T>
+class map_range
+{
+public:
+	map_range(lua_State * L, int sidx = -1) : _L(L) {
+		_sidx = lua_gettop(_L) + (sidx + 1);
+		lua_pushnil(_L);
+		_ok = lua_next(_L, _sidx);
+	}
+
+	~map_range() {lua_pop(_L, 1);}
+
+	void operator++() {
+		lua_pop(_L, 1);
+		_ok = lua_next(_L, _sidx);
+	}
+
+	std::pair<std::string, T> operator*() {
+		return std::make_pair(stack_at<std::string>(_L, -2), 
+			stack_at<T>(_L, -1));
+	}
+
+	operator bool() {return _ok;}
+
+private:
+	bool _ok;
+	int _sidx;  //!< table stack index
+	lua_State * _L;
 };
 
 /*! \note Argumenty sú v prúde v opačnom poradí ako ich vracia volaná (lua)
@@ -156,6 +208,16 @@ public:
 		return *this;
 	}
 
+	template <typename T>
+	self & operator>>(std::map<std::string, T> & val) {
+		for (map_range<T> r = get_map<T>(); r; ++r)
+		{
+			std::pair<std::string, T> p = *r;
+			val[p.first] = p.second;
+		}
+		return *this;
+	}
+
 	void next() {--_sidx;}
 
 	template <typename Value, typename Key>
@@ -167,6 +229,11 @@ private:
 	template <typename T>
 	array_range<T> get_array() {
 		return array_range<T>(_L, _sidx--);
+	}
+
+	template <typename T>
+	map_range<T> get_map() {
+		return map_range<T>(_L, _sidx--);
 	}
 
 private:
