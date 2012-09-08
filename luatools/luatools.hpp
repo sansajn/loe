@@ -220,6 +220,7 @@ public:
 
 	void next() {--_sidx;}
 
+	//! \todo premenuj
 	template <typename Value, typename Key>
 	Value get_table(Key k) {
 		return lua::get_table<Value>(_L, k, _sidx);
@@ -241,28 +242,33 @@ private:
 	int _sidx;	//!< stack index
 };
 
+namespace detail {
+
+template <typename Key, typename Value>
+struct table_query
+{
+	Key const key;
+	Value & value;
+	table_query(Key const & k, Value & v) : key(k), value(v) {}
+};
+
+};  // detail
+
 /*! \note Tabuľkový manipulátor implicitne neposunie ukazateľ na ďalší prvok v
 zásobníku. Ak chceme zo zásobníku čítať dalšie prvky, je potrebné zavolať
 manipulátor next(). */
 template <typename Key, typename Value>
-inline std::pair<Key, Value &> tab(Key k, Value & v)
+inline detail::table_query<Key, Value> tab(Key k, Value & v)
 {
-	return std::pair<Key, Value &>(k, v);
+	return detail::table_query<Key, Value>(k, v);
 }
 
-/* \note Parameter f sa nemusí predavať ako referencia, lebo kompilator použije
-optimalizáciu a celý kódu sa inlajnuje. */
-template <typename Value, typename Key>
-inline istack_stream & operator>>(istack_stream & is, std::pair<Key, Value &> f)
-{
-	f.second = is.get_table<Value>(f.first);
-	return is;
-}
 
 template <typename Value, typename Key>
-inline istack_stream & operator>>(istack_stream && is, std::pair<Key, Value &> f)
+inline istack_stream & operator>>(istack_stream & is, 
+	detail::table_query<Key, Value> & f)
 {
-	f.second = is.get_table<Value>(f.first);
+	f.value = is.get_table<Value>(f.key);
 	return is;
 }
 

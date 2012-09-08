@@ -1,16 +1,17 @@
 /*! v20120212 
 \author Adam Hlavatovič */
 #include <iostream>
-using std::cout;
 #include <string>
-using std::string;
 #include <vector>
-using std::vector;
 #include <algorithm>
-using std::copy;
 #include <iterator>
-using std::ostream_iterator;
 #include <loe/luatools.hpp>
+
+using std::string;
+using std::vector;
+using std::copy;
+using std::cout;
+using std::ostream_iterator;
 namespace lua = loe::lua;
 
 
@@ -56,8 +57,7 @@ void test_person(lua::vm & lvm, lua_State * L)
 void test_arrayr(lua::vm & lvm, lua_State * L)
 {
 	lvm.call_function(L, "dummy_table", 0);
-	lua::array_range<int> r(L, -1);
-	for (r; r; ++r)
+	for (lua::array_range<int> r(L, -1); r; ++r)
 		cout << *r << " ";
 	cout << "\n";
 
