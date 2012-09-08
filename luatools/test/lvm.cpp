@@ -5,6 +5,8 @@
 #include <vector>
 #include <algorithm>
 #include <iterator>
+#include <cstring>
+#include <cassert>
 #include <loe/luatools.hpp>
 
 using std::string;
@@ -14,12 +16,47 @@ using std::cout;
 using std::ostream_iterator;
 namespace lua = loe::lua;
 
+void lmessage(char const * msg);
 
-void lmessage(char const * msg)
+void test();
+void test_test(lua::vm & lvm, lua_State * L);
+void test_person(lua::vm & lvm, lua_State * L);
+void test_arrayr(lua::vm & lvm, lua_State * L);
+void test_arrayis(lua::vm & lvm, lua_State * L);
+void test_arrayos(lua::vm & lvm, lua_State * L);
+void test_error(lua::vm & lvm, lua_State * L);
+void test_libs(lua::vm & lvm, lua_State * L);
+void test_io(lua::vm & lvm, lua_State * L);
+void test_luasql(lua::vm & lvm, lua_State * L);
+
+
+int main(int argc, char * argv[])
 {
-	fprintf(stderr, "%s\n", msg);
-	fflush(stderr);
+	test();
+
+	return 0;
 }
+
+void test()
+{
+	lua::vm lvm(lmessage);
+	lua_State * L = lua::newstate();
+	lvm.init(L);
+	lvm.run_script(L, "test.lua");
+
+	test_test(lvm, L);
+	test_person(lvm, L);
+	test_arrayr(lvm, L);
+	test_arrayis(lvm, L);
+	test_arrayos(lvm, L);
+	test_error(lvm, L);
+	test_libs(lvm, L);
+
+	cout << "stack size: " << lua_gettop(L) << "\n";
+
+	lua_close(L);
+}
+
 
 void test_test(lua::vm & lvm, lua_State * L)
 {
@@ -36,7 +73,10 @@ void test_test(lua::vm & lvm, lua_State * L)
 		<< "  age   : " << age << "\n"
 		<< "  weigth: " << weigth << "\n";
 
-	lua_pop(L, 3);
+	assert(strcmp("Frenk", name.c_str()) == 0 && age == 22 
+		&& weigth == 87.5 && "unexpected return values");
+
+	lua_pop(L, 3);	
 }
 
 void test_person(lua::vm & lvm, lua_State * L)
@@ -51,6 +91,8 @@ void test_person(lua::vm & lvm, lua_State * L)
 		<< "  age   : " << age << "\n"
 		<< "  salary: " << salary << "\n";
 
+	assert(age == 25 && salary == 1890 && "unexpected return values");
+
 	lua_pop(L, 2);
 }
 
@@ -60,6 +102,21 @@ void test_arrayr(lua::vm & lvm, lua_State * L)
 	for (lua::array_range<int> r(L, -1); r; ++r)
 		cout << *r << " ";
 	cout << "\n";
+
+	int expected_data[] = {1, 2, 3, 2, 1};
+
+	lua::array_range<int> r(L, -1);
+
+	bool failed = false;
+	for (int i = 0; r; ++r, ++i)
+	{
+		cout << *r << " ";
+		if (*r != expected_data[i])
+			failed = true;
+	}
+	cout << "\n";
+
+	assert(!failed && "returned array not match");
 
 	lua_pop(L, 1);
 }
@@ -71,6 +128,10 @@ void test_arrayis(lua::vm & lvm, lua_State * L)
 	lua::istack_stream(L) >> v;
 	copy(v.begin(), v.end(), ostream_iterator<int>(cout, " "));
 	cout << "\n";
+
+	vector<int> expected_data{1, 2, 3, 2, 1};
+
+	assert(v == expected_data && "returned array not match");
 
 	lua_pop(L, 1);
 }
@@ -89,6 +150,12 @@ void test_arrayos(lua::vm & lvm, lua_State * L)
 	cout << "\ny = ";
 	copy(y.begin(), y.end(), ostream_iterator<double>(cout, " "));
 	cout << "\n";
+
+	vector<double> z;
+	for (auto & e : x) 
+		z.push_back(e*e);
+
+	assert(z == y && "returned array not match");
 
 	lua_pop(L, 1);
 }
@@ -114,31 +181,9 @@ void test_libs(lua::vm & lvm, lua_State * L)
 	test_luasql(lvm, L);
 }
 
-
-void test()
+void lmessage(char const * msg)
 {
-	lua::vm lvm(lmessage);
-	lua_State * L = lua::newstate();
-	lvm.init(L);
-	lvm.run_script(L, "test.lua");
-
-	test_test(lvm, L);
-	test_person(lvm, L);
-	test_arrayr(lvm, L);
-	test_arrayis(lvm, L);
-	test_arrayos(lvm, L);
-	test_error(lvm, L);
-	test_libs(lvm, L);
-
-	cout << "stack size: " << lua_gettop(L) << "\n";
-
-	lua_close(L);
-}
-
-int main(int argc, char * argv[])
-{
-	test();
-
-	return 0;
+	fprintf(stderr, "%s\n", msg);
+	fflush(stderr);
 }
 
