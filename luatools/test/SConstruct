@@ -1,6 +1,13 @@
 env = Environment()
 env['CC'] = 'clang'
 env['CXX'] = 'clang++'
+env['CPPPATH'] = '../../..'
 
-env.Program(['lvm.cpp', '../luatools.cpp'], CPPPATH='../../..', 
-	LIBS='lua5.1', CPPFLAGS='-std=c++0x')
+
+env.Object('../luatools.cpp', CPPFLAGS='-std=c++0x')
+
+env.Program('lvm', ['lvm.cpp', '../luatools.o'], LIBS='lua5.1', 
+	CPPFLAGS='-std=c++0x')
+
+env.Program('lvm98', ['lvm98.cpp', '../luatools.o'], LIBS='lua5.1', 
+	CPPFLAGS='-std=c++98')
