@@ -1,0 +1,9 @@
+env = Environment()
+env['CC'] = 'clang'
+env['CXX'] = 'clang++'
+env['CPPPATH'] = '../../..'
+
+cpp_flags = '-std=c++11 -O0'
+
+env.Program('test_unique_ptr', ['test_unique_ptr.cpp'], CPPFLAGS=cpp_flags)
+
