@@ -5,6 +5,7 @@
 #include <map>
 #include <vector>
 #include <string>
+#include <cassert>
 #include <lua5.1/lua.hpp>
 
 
@@ -113,7 +114,7 @@ inline std::string stack_at<std::string>(lua_State * L, int idx)
 }
 
 template <typename Value, typename Key>
-Value get_table(lua_State * L, Key k, int sidx) 
+Value table_value(lua_State * L, Key k, int sidx) 
 {
 	stack_push(L, k);
 	lua_gettable(L, sidx-1);
@@ -222,10 +223,12 @@ public:
 
 	//! \todo premenuj
 	template <typename Value, typename Key>
-	Value get_table(Key k) {
-		return lua::get_table<Value>(_L, k, _sidx);
+	Value table_value(Key k) {
+		return lua::table_value<Value>(_L, k, _sidx);
 	}
-	
+
+	lua_State * get() const {return _L;}
+
 private:
 	template <typename T>
 	array_range<T> get_array() {
@@ -264,15 +267,13 @@ inline detail::table_query<Key, Value> tab(Key k, Value & v)
 }
 
 
-template <typename Value, typename Key>
+template <typename Key, typename Value>
 inline istack_stream & operator>>(istack_stream & is, 
 	detail::table_query<Key, Value> & f)
 {
-	f.value = is.get_table<Value>(f.key);
+	f.value = is.table_value<Value>(f.key);
 	return is;
 }
-
-inline void next(istack_stream & is) {is.next();}
 
 
 class ostack_stream
@@ -281,6 +282,12 @@ public:
 	typedef ostack_stream self;
 
 	ostack_stream(lua_State * L) : _L(L) {}
+
+	//! unary-manipulators
+	self & operator<<(void (*fn)(self & os)) {
+		fn(*this);
+		return *this;
+	}
 
 	self & operator<<(int const & val) {
 		lua_pushinteger(_L, val);
@@ -307,9 +314,36 @@ public:
 		return *this;
 	}
 
+	lua_State * get() const {return _L;}
+
 private:
 	lua_State * _L;
 };
+
+
+template <typename Key, typename Value>
+inline ostack_stream & operator<<(ostack_stream & os, 
+	loe::lua::detail::table_query<Key, Value> & q)
+{
+/*	
+	lua_State * L = os.get();
+
+	assert(lua_istable(L, -1) && "table expected");
+
+	stack_push(L, q.key);
+	lua_setfield(L, -2, q.value);
+*/
+	return os;
+}
+
+
+//! Stack-stream manipulators
+//@{
+
+inline void next(istack_stream & is) {is.next();}
+inline void newtable(ostack_stream & os) {lua_newtable(os.get());}
+
+//@}
 
 	};  // lua
 };  // loe

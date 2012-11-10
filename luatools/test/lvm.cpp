@@ -3,6 +3,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <map>
 #include <algorithm>
 #include <iterator>
 #include <cstring>
@@ -11,6 +12,7 @@
 
 using std::string;
 using std::vector;
+using std::map;
 using std::copy;
 using std::cout;
 using std::ostream_iterator;
@@ -24,6 +26,7 @@ void test_person(lua::vm & lvm, lua_State * L);
 void test_arrayr(lua::vm & lvm, lua_State * L);
 void test_arrayis(lua::vm & lvm, lua_State * L);
 void test_arrayos(lua::vm & lvm, lua_State * L);
+void test_ostream_table(lua::vm & lvm, lua_State * L);
 void test_error(lua::vm & lvm, lua_State * L);
 void test_libs(lua::vm & lvm, lua_State * L);
 void test_io(lua::vm & lvm, lua_State * L);
@@ -49,6 +52,7 @@ void test()
 	test_arrayr(lvm, L);
 	test_arrayis(lvm, L);
 	test_arrayos(lvm, L);
+	test_ostream_table(lvm, L);
 	test_error(lvm, L);
 	test_libs(lvm, L);
 
@@ -157,6 +161,35 @@ void test_arrayos(lua::vm & lvm, lua_State * L)
 
 	assert(z == y && "returned array not match");
 
+	lua_pop(L, 1);
+}
+
+void test_ostream_table(lua::vm & lvm, lua_State * L)
+{
+	int i = 1, j = 2, k = 3;
+	string s = "one";
+//	lua::ostack_stream(L) << lua::newtable << lua::tab(s, i);
+
+	auto t = lua::tab(s, i);
+	auto os = lua::ostack_stream(L);
+	os << t;
+
+	os << lua::tab(s, i);
+
+/*
+		<< lua::tab("two", j) << lua::tab("five", k);
+
+	lvm.call_function(L, "echo_table", 1);
+	
+	map<string, int> received;
+	lua::istack_stream(L) >> received;
+
+	assert(received.size() == 3 
+		&& "unexpected number of return values");
+
+	assert(received["one"] == 1 && received["two"] == 2 
+		&& received["five"] == 5 && "returned map not match");
+*/
 	lua_pop(L, 1);
 }
 

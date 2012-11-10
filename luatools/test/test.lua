@@ -71,3 +71,8 @@ function sqlite3_test()
 	con:close()
 	env:close()
 end
+
+function echo_table(t)
+	return t
+end
+
