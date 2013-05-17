@@ -76,3 +76,27 @@ function echo_table(t)
 	return t
 end
 
+function custom_structure_test(person)
+	if person.name == 'Franta Spelec' and person.age == 29 then
+		return 1
+	else
+		return 0
+	end
+end
+
+function custom_structure_array_test(data)
+	expected = {
+		{name='Franta Spelec', age=29},
+		{name='John Rambo', age=33},
+		{name='Janosikov sveter', age=26}
+	}
+
+	for i,v in pairs(data) do
+		if v.name ~= expected[i].name or v.age ~= expected[i].age then
+			return 0
+		end
+	end
+
+	return 1
+end
+

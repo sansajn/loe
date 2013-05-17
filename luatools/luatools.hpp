@@ -6,7 +6,13 @@
 #include <vector>
 #include <string>
 #include <cassert>
-#include <lua5.1/lua.hpp>
+
+#ifdef WIN32
+	#include <lua.hpp>
+	#pragma warning(disable:4800)
+#else
+	#include <lua5.1/lua.hpp>
+#endif
 
 
 namespace loe {
@@ -134,7 +140,7 @@ public:
 		return stack_pop<T>(_L);
 	}
 
-	operator bool() {return _tidx <= lua_objlen(_L, _sidx);}
+	operator bool() {return _tidx <= int(lua_objlen(_L, _sidx));}
 
 private:
 	lua_State * _L;
@@ -151,8 +157,6 @@ public:
 		lua_pushnil(_L);
 		_ok = lua_next(_L, _sidx);
 	}
-
-	~map_range() {lua_pop(_L, 1);}
 
 	void operator++() {
 		lua_pop(_L, 1);
@@ -221,12 +225,6 @@ public:
 
 	void next() {--_sidx;}
 
-	//! \todo premenuj
-	template <typename Value, typename Key>
-	Value table_value(Key k) {
-		return lua::table_value<Value>(_L, k, _sidx);
-	}
-
 	lua_State * get() const {return _L;}
 
 private:
@@ -240,7 +238,6 @@ private:
 		return map_range<T>(_L, _sidx--);
 	}
 
-private:
 	lua_State * _L;
 	int _sidx;	//!< stack index
 };
@@ -308,7 +305,7 @@ public:
 	self & operator<<(std::vector<T> const & val) {
 		lua_newtable(_L);
 		for (int i = 0; i < val.size(); ++i) {
-			stack_push(_L, val[i]);
+			*this << val[i];
 			lua_rawseti(_L, -2, i+1);
 		}
 		return *this;
@@ -322,17 +319,15 @@ private:
 
 
 template <typename Key, typename Value>
-inline ostack_stream & operator<<(ostack_stream & os, 
-	loe::lua::detail::table_query<Key, Value> & q)
+inline ostack_stream & operator<<(ostack_stream & os, detail::table_query<Key, Value> & q)
 {
-/*	
 	lua_State * L = os.get();
 
 	assert(lua_istable(L, -1) && "table expected");
 
-	stack_push(L, q.key);
-	lua_setfield(L, -2, q.value);
-*/
+	os << q.value;
+	lua_setfield(L, -2, q.key);
+
 	return os;
 }
 
