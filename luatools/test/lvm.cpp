@@ -1,5 +1,4 @@
-/*! v20120212 
-\author Adam Hlavatovič */
+/*! \author Adam Hlavatovič */
 #include <iostream>
 #include <string>
 #include <vector>
@@ -32,6 +31,13 @@ void test_libs(lua::vm & lvm, lua_State * L);
 void test_io(lua::vm & lvm, lua_State * L);
 void test_luasql(lua::vm & lvm, lua_State * L);
 
+// do skriptu posle uzivatelsky definovanu strukturu
+void test_custom_structure(lua::vm & lvm, lua_State * L);
+void test_custom_structure_overload(lua::vm & lvm, lua_State * L);
+
+// do skriptu posle pole uzivatelsky definovanej strukturi
+void test_custom_structure_array(lua::vm & lvm, lua_State * L);
+
 
 int main(int argc, char * argv[])
 {
@@ -52,15 +58,17 @@ void test()
 	test_arrayr(lvm, L);
 	test_arrayis(lvm, L);
 	test_arrayos(lvm, L);
-	test_ostream_table(lvm, L);
 	test_error(lvm, L);
 	test_libs(lvm, L);
+	test_ostream_table(lvm, L);
+	test_custom_structure(lvm, L);
+	test_custom_structure_overload(lvm, L);
+	test_custom_structure_array(lvm, L);
 
 	cout << "stack size: " << lua_gettop(L) << "\n";
 
 	lua_close(L);
 }
-
 
 void test_test(lua::vm & lvm, lua_State * L)
 {
@@ -167,17 +175,15 @@ void test_arrayos(lua::vm & lvm, lua_State * L)
 void test_ostream_table(lua::vm & lvm, lua_State * L)
 {
 	int i = 1, j = 2, k = 3;
-	string s = "one";
-//	lua::ostack_stream(L) << lua::newtable << lua::tab(s, i);
 
-	auto t = lua::tab(s, i);
-	auto os = lua::ostack_stream(L);
-	os << t;
+/*	
+	lua::ostack_stream los(L);
+	los << lua::newtable << lua::tab("one", i) 
+		<< lua::tab("two", j) << lua::tab("tree", k);
+*/		
 
-	os << lua::tab(s, i);
-
-/*
-		<< lua::tab("two", j) << lua::tab("five", k);
+	lua::ostack_stream(L) << lua::newtable << lua::tab("one", i) 
+		<< lua::tab("two", j) << lua::tab("tree", k);
 
 	lvm.call_function(L, "echo_table", 1);
 	
@@ -188,8 +194,8 @@ void test_ostream_table(lua::vm & lvm, lua_State * L)
 		&& "unexpected number of return values");
 
 	assert(received["one"] == 1 && received["two"] == 2 
-		&& received["five"] == 5 && "returned map not match");
-*/
+		&& received["tree"] == 3 && "returned map not match");
+
 	lua_pop(L, 1);
 }
 
@@ -212,6 +218,79 @@ void test_libs(lua::vm & lvm, lua_State * L)
 {
 	test_io(lvm, L);
 	test_luasql(lvm, L);
+}
+
+
+struct person
+{
+	string name;
+	int age;
+};
+
+void test_custom_structure(lua::vm & lvm, lua_State * L)
+{
+	person p = {"Franta Spelec", 29};
+
+	lua::ostack_stream(L) << lua::newtable << lua::tab("name", p.name)
+		<< lua::tab("age", p.age);
+
+	lvm.call_function(L, "custom_structure_test", 1);
+
+	int result = 0;
+	lua::istack_stream(L) >> result;
+
+	assert(result && "custom-structure-test failed");
+
+	lua_pop(L, 1);
+}
+
+namespace loe {
+	namespace lua {
+
+template <>
+inline void stack_push<person>(lua_State * L, person const & p)
+{
+	ostack_stream(L) << newtable << tab("name", p.name) << tab("age", p.age);
+}
+
+	}  // lua
+}  // loe
+
+void test_custom_structure_overload(lua::vm & lvm, lua_State * L)
+{
+	person p = {"Franta Spelec", 29};
+
+	lua::ostack_stream(L) << p;
+
+	lvm.call_function(L, "custom_structure_test", 1);
+
+	int result = 0;
+	lua::istack_stream(L) >> result;
+
+	assert(result && "custom-structure-test failed");
+
+	lua_pop(L, 1);
+}
+
+void test_custom_structure_array(lua::vm & lvm, lua_State * L)
+{
+	person p[] = {
+		{"Franta Spelec", 29},
+		{"John Rambo", 33},
+		{"Janosikov sveter", 26}
+	};
+
+	vector<person> arr(p, p+3);
+
+	lua::ostack_stream(L) << arr;
+	lvm.call_function(L, "custom_structure_array_test", 1);
+
+	int result = 0;
+	lua::istack_stream(L) >> result;
+
+	assert(result && "custom-structure-array-test failed");
+
+	lua_pop(L, 1);
 }
 
 void lmessage(char const * msg)

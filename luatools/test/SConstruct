@@ -1,13 +1,20 @@
+import sys
+linux = sys.platform == 'linux2'
+
 env = Environment()
-env['CC'] = 'clang'
-env['CXX'] = 'clang++'
+
+if linux:
+	env['CC'] = 'clang'
+	env['CXX'] = 'clang++'
+	env.ParseConfig('pkg-config --cflags --libs lua5.1-c++')
+else:
+	env.Tool('mingw')
+
 env['CPPPATH'] = '../../..'
 
+env.Object('../luatools.cpp', CPPFLAGS='-std=c++11')
 
-env.Object('../luatools.cpp', CPPFLAGS='-std=c++0x')
+if linux:
+	env.Program('lvm', ['lvm.cpp', '../luatools.o'], CPPFLAGS='-std=c++11')
 
-env.Program('lvm', ['lvm.cpp', '../luatools.o'], LIBS='lua5.1', 
-	CPPFLAGS='-std=c++0x')
-
-env.Program('lvm98', ['lvm98.cpp', '../luatools.o'], LIBS='lua5.1', 
-	CPPFLAGS='-std=c++98')
+env.Program('lvm98', ['lvm98.cpp', '../luatools.o'], CPPFLAGS='-std=c++98')

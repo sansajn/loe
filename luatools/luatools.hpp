@@ -140,7 +140,7 @@ public:
 		return stack_pop<T>(_L);
 	}
 
-	operator bool() {return _tidx <= int(lua_objlen(_L, _sidx));}
+	operator bool() {return _tidx <= lua_objlen(_L, _sidx);}
 
 private:
 	lua_State * _L;
@@ -175,6 +175,7 @@ private:
 	int _sidx;  //!< table stack index
 	lua_State * _L;
 };
+
 
 /*! \note Argumenty sú v prúde v opačnom poradí ako ich vracia volaná (lua)
 funkcia. */
@@ -225,6 +226,12 @@ public:
 
 	void next() {--_sidx;}
 
+	//! \todo premenuj
+	template <typename Value, typename Key>
+	Value table_value(Key k) {
+		return lua::table_value<Value>(_L, k, _sidx);
+	}
+
 	lua_State * get() const {return _L;}
 
 private:
@@ -254,9 +261,9 @@ struct table_query
 
 };  // detail
 
-/*! \note Tabuľkový manipulátor implicitne neposunie ukazateľ na ďalší prvok v
-zásobníku. Ak chceme zo zásobníku čítať dalšie prvky, je potrebné zavolať
-manipulátor next(). */
+/*! \note Tabuľkový manipulátor implicitne neposunie ukazateľ na ďalší 
+prvok v zásobníku. Ak chceme zo zásobníku čítať dalšie prvky, je potrebné 
+zavolať manipulátor next(). */
 template <typename Key, typename Value>
 inline detail::table_query<Key, Value> tab(Key k, Value & v)
 {
@@ -280,24 +287,15 @@ public:
 
 	ostack_stream(lua_State * L) : _L(L) {}
 
+	template <typename T>
+	self & operator<<(T const & rhs) {
+		stack_push(_L, rhs);
+		return *this;
+	}
+
 	//! unary-manipulators
 	self & operator<<(void (*fn)(self & os)) {
 		fn(*this);
-		return *this;
-	}
-
-	self & operator<<(int const & val) {
-		lua_pushinteger(_L, val);
-		return *this;
-	}
-
-	self & operator<<(double const & val) {
-		lua_pushnumber(_L, val);
-		return *this;
-	}
-
-	self & operator<<(std::string const & val) {
-		lua_pushstring(_L, val.c_str());
 		return *this;
 	}
 
@@ -311,25 +309,21 @@ public:
 		return *this;
 	}
 
+	/* \note, externý operátor nemôžem použit s dočastným objektom, takto
+	ostack_stream(L) << tab("one", i), zda sa že interny môžem. */
+	template <typename Key, typename Value>
+	self & operator<<(detail::table_query<Key, Value> const & q) {
+		assert(lua_istable(_L, -1) && "table expected");
+		*this << q.value;
+		lua_setfield(_L, -2, q.key);
+		return *this;
+	}
+
 	lua_State * get() const {return _L;}
 
 private:
 	lua_State * _L;
 };
-
-
-template <typename Key, typename Value>
-inline ostack_stream & operator<<(ostack_stream & os, detail::table_query<Key, Value> & q)
-{
-	lua_State * L = os.get();
-
-	assert(lua_istable(L, -1) && "table expected");
-
-	os << q.value;
-	lua_setfield(L, -2, q.key);
-
-	return os;
-}
 
 
 //! Stack-stream manipulators
