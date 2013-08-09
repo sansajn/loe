@@ -38,7 +38,6 @@ private:
 	int report(lua_State * L, int state);
 	int call_chunk(lua_State * L, int narg);
 
-private:
 	errout _luaerr;
 };
 
@@ -251,12 +250,20 @@ private:
 
 namespace detail {
 
+// prmenovat, tento nazov mi nejako nepasuje, preco query v pripade outu ?
 template <typename Key, typename Value>
 struct table_query
 {
 	Key const key;
 	Value & value;
 	table_query(Key const & k, Value & v) : key(k), value(v) {}
+};
+
+struct binary_object
+{
+	char const * value;
+	int size;
+	binary_object(char const * buf, int n) : value(buf), size(n) {}
 };
 
 };  // detail
@@ -309,13 +316,22 @@ public:
 		return *this;
 	}
 
-	/* \note, externý operátor nemôžem použit s dočastným objektom, takto
-	ostack_stream(L) << tab("one", i), zda sa že interny môžem. */
+	/* \note, externý operátor nemôžem použit s dočastným objektom takto
+
+		ostack_stream(L) << tab("one", i)
+
+	Zda sa že interny môžem. */
 	template <typename Key, typename Value>
 	self & operator<<(detail::table_query<Key, Value> const & q) {
 		assert(lua_istable(_L, -1) && "table expected");
 		*this << q.value;
 		lua_setfield(_L, -2, q.key);
+		return *this;
+	}
+
+	// podpora pre binarne data
+	self & operator<<(detail::binary_object const & rhs) {
+		lua_pushlstring(_L, rhs.value, rhs.size);
 		return *this;
 	}
 
@@ -329,8 +345,15 @@ private:
 //! Stack-stream manipulators
 //@{
 
+//! Posunie sa na ďalší prvok v zásobníku.
 inline void next(istack_stream & is) {is.next();}
+
 inline void newtable(ostack_stream & os) {lua_newtable(os.get());}
+
+inline detail::binary_object binary(char const * src, int size) 
+{
+	return detail::binary_object(src, size);
+}
 
 //@}
 

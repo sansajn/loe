@@ -100,3 +100,21 @@ function custom_structure_array_test(data)
 	return 1
 end
 
+function ostream_binary_test(data)
+	require 'pack'
+	
+	if #data ~= 15 then
+		return -1
+	end
+
+	local packed = string.pack('>I', 12345)
+
+	local sum = 0
+	for i=1,#data do
+		local len, val = string.unpack(data, 'b', i)
+		sum = sum + val
+	end
+
+	return sum
+end
+

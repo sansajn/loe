@@ -14,7 +14,6 @@ env['CPPPATH'] = '../../..'
 
 env.Object('../luatools.cpp', CPPFLAGS='-std=c++11')
 
-if linux:
-	env.Program('lvm', ['lvm.cpp', '../luatools.o'], CPPFLAGS='-std=c++11')
-
+env.Program('lvm', ['lvm.cpp', '../luatools.o'], CPPFLAGS='-std=c++11')
 env.Program('lvm98', ['lvm98.cpp', '../luatools.o'], CPPFLAGS='-std=c++98')
+	

@@ -38,6 +38,8 @@ void test_custom_structure_overload(lua::vm & lvm, lua_State * L);
 // do skriptu posle pole uzivatelsky definovanej strukturi
 void test_custom_structure_array(lua::vm & lvm, lua_State * L);
 
+void test_ostream_binary(lua::vm & lvm, lua_State * L);
+
 
 int main(int argc, char * argv[])
 {
@@ -64,6 +66,7 @@ void test()
 	test_custom_structure(lvm, L);
 	test_custom_structure_overload(lvm, L);
 	test_custom_structure_array(lvm, L);
+	test_ostream_binary(lvm, L);
 
 	cout << "stack size: " << lua_gettop(L) << "\n";
 
@@ -221,6 +224,8 @@ void test_libs(lua::vm & lvm, lua_State * L)
 }
 
 
+
+
 struct person
 {
 	string name;
@@ -289,6 +294,27 @@ void test_custom_structure_array(lua::vm & lvm, lua_State * L)
 	lua::istack_stream(L) >> result;
 
 	assert(result && "custom-structure-array-test failed");
+
+	lua_pop(L, 1);
+}
+
+void test_ostream_binary(lua::vm & lvm, lua_State * L)
+{
+	char buf[15];
+	for (int i = 0; i < 15; ++i)
+		buf[i] = i+1;
+
+	int expected_result = 15*(15+1)/2;
+
+	lua::ostack_stream(L) << lua::binary(buf, 15);
+	lvm.call_function(L, "ostream_binary_test", 1);
+
+	int sum = 0;
+	lua::istack_stream(L) >> sum;
+
+	std::cout << "sum:" << sum << "\n";
+
+	assert(sum == expected_result && "ostream_binary_test failed");
 
 	lua_pop(L, 1);
 }
