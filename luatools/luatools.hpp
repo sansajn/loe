@@ -45,13 +45,69 @@ private:
 //! Lua stack low-level manipulators.
 //@{
 template <typename R>
-inline R stack_pop(lua_State * L);
+inline R stack_at(lua_State * L, int idx);
+
+template <>
+inline int stack_at<int>(lua_State * L, int idx)
+{
+	return lua_tointeger(L, idx);
+}
+
+template <>
+inline double stack_at<double>(lua_State * L, int idx)
+{
+	return lua_tonumber(L, idx);
+}
+
+template <>
+inline std::string stack_at<std::string>(lua_State * L, int idx)
+{
+	return lua_tostring(L, idx);
+}
+
+template <>
+inline bool stack_at<bool>(lua_State * L, int idx)
+{
+	return lua_toboolean(L, idx) == 1;
+}
+
 
 template <typename T>
 inline void stack_push(lua_State * L, T const & x);
 
+template <> 
+inline void stack_push<int>(lua_State * L, int const & x)
+{
+	lua_pushinteger(L, x);
+}
+
+template <> 
+inline void stack_push<double>(lua_State * L, double const & x)
+{
+	lua_pushnumber(L, x);
+}
+
+template <> 
+inline void stack_push<std::string>(lua_State * L, std::string const & x)
+{
+	lua_pushstring(L, x.c_str());
+}
+
+//! \note: nie je šablonova špecializacia, kvoly pointru x
+inline void stack_push(lua_State * L, char const * x)
+{
+	lua_pushstring(L, x);
+}
+
+template <>
+inline void stack_push<bool>(lua_State * L, bool const & x)
+{
+	lua_pushboolean(L, x ? 1 : 0);
+}
+
+
 template <typename R>
-inline R stack_at(lua_State * L, int idx);
+inline R stack_pop(lua_State * L);
 
 template <> 
 inline int stack_pop<int>(lua_State * L)
@@ -85,53 +141,6 @@ inline bool stack_pop<bool>(lua_State * L)
 	return tmp;
 }
 
-template <> 
-inline void stack_push<int>(lua_State * L, int const & x)
-{
-	lua_pushinteger(L, x);
-}
-
-template <> 
-inline void stack_push<double>(lua_State * L, double const & x)
-{
-	lua_pushnumber(L, x);
-}
-
-template <> 
-inline void stack_push<std::string>(lua_State * L, std::string const & x)
-{
-	lua_pushstring(L, x.c_str());
-}
-
-// \todo: šablonizuj
-inline void stack_push(lua_State * L, char const * x)
-{
-	lua_pushstring(L, x);
-}
-
-template <>
-inline void stack_push<bool>(lua_State * L, bool const & x)
-{
-	lua_pushboolean(L, x ? 1 : 0);
-}
-
-template <>
-inline int stack_at<int>(lua_State * L, int idx)
-{
-	return lua_tointeger(L, idx);
-}
-
-template <>
-inline double stack_at<double>(lua_State * L, int idx)
-{
-	return lua_tonumber(L, idx);
-}
-
-template <>
-inline std::string stack_at<std::string>(lua_State * L, int idx)
-{
-	return lua_tostring(L, idx);
-}
 
 template <typename Value, typename Key>
 Value table_value(lua_State * L, Key k, int sidx) 
@@ -206,18 +215,10 @@ public:
 		return *this;
 	}
 
-	self & operator>>(int & val) {
-		val = lua_tointeger(_L, _sidx--);
-		return *this;
-	}
-
-	self & operator>>(double & val) {
-		val = lua_tonumber(_L, _sidx--);
-		return *this;
-	}
-
-	self & operator>>(std::string & val) {
-		val = lua_tostring(_L, _sidx--);
+	template <typename T>
+	self & operator>>(T & x)
+	{
+		x = stack_at<T>(_L, _sidx--);
 		return *this;
 	}
 
