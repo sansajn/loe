@@ -1,6 +1,6 @@
 loe
 General purpose library. LOE is acronym for Library Of Everithing, so there are
-things I use in my apps that cen by recycled.
+things I use in my apps that cen be recycled.
 
 Content
 
@@ -80,6 +80,6 @@ Sqlite3 database wrapper.
 		<< "  age   : " << age << "\n"
 		<< "  salary: " << salary << "\n";
 
-	lua_pop(L, 2);
+	lua_pop(L, 1);
 
 --- end example].

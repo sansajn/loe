@@ -30,12 +30,13 @@ void test_error(lua::vm & lvm, lua_State * L);
 void test_libs(lua::vm & lvm, lua_State * L);
 void test_io(lua::vm & lvm, lua_State * L);
 void test_luasql(lua::vm & lvm, lua_State * L);
+void test_boolean(lua::vm & lvm, lua_State * L);
 
 // do skriptu posle uzivatelsky definovanu strukturu
 void test_custom_structure(lua::vm & lvm, lua_State * L);
 void test_custom_structure_overload(lua::vm & lvm, lua_State * L);
 
-// do skriptu posle pole uzivatelsky definovanej strukturi
+// do skriptu posle pole uzivatelsky definovane strukturi
 void test_custom_structure_array(lua::vm & lvm, lua_State * L);
 
 void test_ostream_binary(lua::vm & lvm, lua_State * L);
@@ -62,6 +63,8 @@ void test()
 	test_arrayos(lvm, L);
 	test_error(lvm, L);
 	test_libs(lvm, L);
+
+	test_boolean(lvm, L);
 	test_ostream_table(lvm, L);
 	test_custom_structure(lvm, L);
 	test_custom_structure_overload(lvm, L);
@@ -223,7 +226,21 @@ void test_libs(lua::vm & lvm, lua_State * L)
 	test_luasql(lvm, L);
 }
 
+void test_boolean(lua::vm & lvm, lua_State * L)
+{
+	lua::ostack_stream(L) << true;
+	lvm.call_function(L, "echo_boolean", 1);
+	bool received;
+	lua::istack_stream(L) >> received;
+	assert(received == true && "unexpected boolean value");
+	lua_pop(L, 1);
 
+	lua::ostack_stream(L) << false;
+	lvm.call_function(L, "echo_boolean", 1);
+	lua::istack_stream(L) >> received;
+	assert(received == false && "unexpected boolean value");
+	lua_pop(L, 1);	
+}
 
 
 struct person
@@ -318,6 +335,31 @@ void test_ostream_binary(lua::vm & lvm, lua_State * L)
 
 	lua_pop(L, 1);
 }
+
+void test_ostream_binary_table(lua::vm & lvm, lua_State * L)
+{
+	char buf[15];
+	for (int i = 0; i < 15; ++i)
+		buf[i] = i+1;
+
+	int expected_result = 15*(15+1)/2;
+
+	auto bindata = lua::binary(buf, 15);
+
+	lua::ostack_stream(L) << lua::tab("raw", bindata);
+	lvm.call_function(L, "ostream_binary_test_table", 1);
+
+	int sum = 0;
+	lua::istack_stream(L) >> sum;
+
+	std::cout << "sum:" << sum << "\n";
+
+	assert(sum == expected_result && "ostream_binary_test failed");
+
+	lua_pop(L, 1);
+}
+
+
 
 void lmessage(char const * msg)
 {

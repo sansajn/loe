@@ -77,6 +77,14 @@ inline std::string stack_pop<std::string>(lua_State * L)
 	return tmp;
 }
 
+template <>
+inline bool stack_pop<bool>(lua_State * L)
+{
+	bool tmp = lua_toboolean(L, -1) == 1;
+	lua_pop(L, 1);
+	return tmp;
+}
+
 template <> 
 inline void stack_push<int>(lua_State * L, int const & x)
 {
@@ -95,9 +103,16 @@ inline void stack_push<std::string>(lua_State * L, std::string const & x)
 	lua_pushstring(L, x.c_str());
 }
 
+// \todo: šablonizuj
 inline void stack_push(lua_State * L, char const * x)
 {
 	lua_pushstring(L, x);
+}
+
+template <>
+inline void stack_push<bool>(lua_State * L, bool const & x)
+{
+	lua_pushboolean(L, x ? 1 : 0);
 }
 
 template <>
@@ -203,6 +218,12 @@ public:
 
 	self & operator>>(std::string & val) {
 		val = lua_tostring(_L, _sidx--);
+		return *this;
+	}
+
+	// \todo pouzi genericku funkciu push_back
+	self & operator>>(bool & val) {
+		val = lua_toboolean(_L, _sidx--) == 1;
 		return *this;
 	}
 

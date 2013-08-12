@@ -72,6 +72,10 @@ function sqlite3_test()
 	env:close()
 end
 
+function echo_boolean(b)
+	return b
+end
+
 function echo_table(t)
 	return t
 end
